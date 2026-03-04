@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabase'
 import jwt from 'jsonwebtoken'
+import { randomBytes } from 'crypto'
 import { LoginRequest, LoginResponse } from './auth.types'
 
 export async function loginStudent(data: LoginRequest): Promise<LoginResponse> {
@@ -49,14 +50,23 @@ export async function loginStudent(data: LoginRequest): Promise<LoginResponse> {
   }
 }
 
+// Fix C-3: Kryptografisch sichere Code-Generierung
+function generateSecureCode(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  return Array.from(randomBytes(6))
+    .map(b => chars[b % chars.length])
+    .join('')
+}
+
 export async function generateRoomCode(lesson_id: string): Promise<string> {
-  const code = Math.random().toString(36).substring(2, 8).toUpperCase()
+  const code = generateSecureCode()
   const expires_at = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()
 
-  await (supabase as any).from('active_codes').upsert(
-    { room_code: code, lesson_id, expires_at },
-    { onConflict: 'room_code' }
-  )
+  // Erst alten Code für diese Lektion löschen
+  await (supabase as any).from('active_codes').delete().eq('lesson_id', lesson_id)
+
+  // Neuen Code einfügen
+  await (supabase as any).from('active_codes').insert({ room_code: code, lesson_id, expires_at })
   await (supabase as any)
     .from('lessons')
     .update({ room_code: code, status: 'aktiv' })

@@ -1,27 +1,48 @@
 import { Server, Socket } from 'socket.io'
 import { supabase } from '../../lib/supabase'
 
-export function registerAttendanceHandlers(io: Server, socket: Socket, lesson_id: string) {
+const activeChecks = new Set<string>()
+
+export function registerAttendanceHandlers(
+  io: Server,
+  socket: Socket,
+  lesson_id: string,
+  student_id: string,
+  role: string
+) {
   const room = `lesson:${lesson_id}`
 
   socket.on('attendance:start', async () => {
-    if (socket.handshake.auth.role !== 'teacher') return
+    if (role !== 'teacher') return
 
-    // checks_total für alle Schüler in dieser Lektion erhöhen
-    await (supabase as any)
+    // Fix I-2: Read-then-Write statt kaputtem RPC-Aufruf
+    const { data: logs } = await (supabase as any)
       .from('attendance_logs')
-      .update({ checks_total: (supabase as any).rpc('increment') })
+      .select('id, checks_total')
       .eq('lesson_id', lesson_id)
 
+    if (logs && logs.length > 0) {
+      for (const log of logs) {
+        await (supabase as any)
+          .from('attendance_logs')
+          .update({ checks_total: log.checks_total + 1 })
+          .eq('id', log.id)
+      }
+    }
+
+    // Fix C-2: Aktiven Check serverseitig tracken
+    activeChecks.add(lesson_id)
     io.to(room).emit('attendance:start', { duration: 120 })
 
     setTimeout(() => {
+      activeChecks.delete(lesson_id)
       io.to(room).emit('attendance:end')
     }, 120_000)
   })
 
   socket.on('attendance:confirm', async () => {
-    const { student_id } = socket.handshake.auth
+    // Fix C-2: Nur bestätigen wenn Check aktiv ist
+    if (!activeChecks.has(lesson_id)) return
     if (!student_id) return
 
     const { data: log } = await (supabase as any)
