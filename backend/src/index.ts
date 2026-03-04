@@ -1,36 +1,38 @@
-import express from "express";
-import { createServer } from "http";
-import { Server } from "socket.io";
-import cors from "cors";
-import dotenv from "dotenv";
+import express from 'express'
+import { createServer } from 'http'
+import { Server } from 'socket.io'
+import cors from 'cors'
+import dotenv from 'dotenv'
+dotenv.config()
 
-dotenv.config();
+const app = express()
+const httpServer = createServer(app)
 
-const app = express();
-const httpServer = createServer(app);
-const io = new Server(httpServer, {
+export const io = new Server(httpServer, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
-    methods: ["GET", "POST"],
-  },
-});
+    origin: process.env.FRONTEND_URL,
+    credentials: true
+  }
+})
 
-app.use(cors());
-app.use(express.json());
+app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }))
+app.use(express.json())
 
-app.get("/health", (_req, res) => {
-  res.json({ status: "ok" });
-});
+// Health check
+app.get('/health', (_req, res) => res.json({ status: 'ok' }))
 
-io.on("connection", (socket) => {
-  console.log("Client connected:", socket.id);
+// Routes (werden später hinzugefügt)
+import authRouter from './modules/auth/auth.routes'
+import roomsRouter from './modules/rooms/rooms.routes'
 
-  socket.on("disconnect", () => {
-    console.log("Client disconnected:", socket.id);
-  });
-});
+app.use('/api/auth', authRouter)
+app.use('/api/rooms', roomsRouter)
 
-const PORT = process.env.PORT || 3000;
+// Socket.io
+import { registerSocketHandlers } from './socket/index'
+registerSocketHandlers(io)
+
+const PORT = process.env.PORT || 3002
 httpServer.listen(PORT, () => {
-  console.log(`Backend running on port ${PORT}`);
-});
+  console.log(`Backend läuft auf Port ${PORT}`)
+})
