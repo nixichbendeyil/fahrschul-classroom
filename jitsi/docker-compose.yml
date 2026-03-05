@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  jitsi-web:
+    image: jitsi/web:stable
+    restart: unless-stopped
+    environment:
+      ENABLE_AUTH: "0"
+      ENABLE_GUESTS: "1"
+      PUBLIC_URL: "http://jitsi.178.104.27.147.traefik.me"
+      XMPP_SERVER: prosody
+      XMPP_DOMAIN: meet.jitsi
+      XMPP_AUTH_DOMAIN: auth.meet.jitsi
+      XMPP_BOSH_URL_BASE: http://prosody:5280
+      XMPP_MUC_DOMAIN: muc.meet.jitsi
+      TZ: Europe/Berlin
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jitsi-web.rule=Host(`jitsi.178.104.27.147.traefik.me`)"
+      - "traefik.http.routers.jitsi-web.entrypoints=web"
+      - "traefik.http.services.jitsi-web.loadbalancer.server.port=80"
+    networks:
+      - jitsi-internal
+      - dokploy-network
+
+  prosody:
+    image: jitsi/prosody:stable
+    restart: unless-stopped
+    environment:
+      ENABLE_AUTH: "0"
+      ENABLE_GUESTS: "1"
+      XMPP_DOMAIN: meet.jitsi
+      XMPP_AUTH_DOMAIN: auth.meet.jitsi
+      XMPP_GUEST_DOMAIN: guest.meet.jitsi
+      XMPP_MUC_DOMAIN: muc.meet.jitsi
+      XMPP_INTERNAL_MUC_DOMAIN: internal-muc.meet.jitsi
+      JICOFO_COMPONENT_SECRET: ${JICOFO_COMPONENT_SECRET}
+      JICOFO_AUTH_USER: focus
+      JICOFO_AUTH_PASSWORD: ${JICOFO_AUTH_PASSWORD}
+      JVB_AUTH_USER: jvb
+      JVB_AUTH_PASSWORD: ${JVB_AUTH_PASSWORD}
+      TZ: Europe/Berlin
+    networks:
+      jitsi-internal:
+        aliases:
+          - meet.jitsi
+          - auth.meet.jitsi
+          - guest.meet.jitsi
+          - muc.meet.jitsi
+          - internal-muc.meet.jitsi
+
+  jicofo:
+    image: jitsi/jicofo:stable
+    restart: unless-stopped
+    environment:
+      ENABLE_AUTH: "0"
+      XMPP_SERVER: prosody
+      XMPP_DOMAIN: meet.jitsi
+      XMPP_AUTH_DOMAIN: auth.meet.jitsi
+      XMPP_INTERNAL_MUC_DOMAIN: internal-muc.meet.jitsi
+      JICOFO_COMPONENT_SECRET: ${JICOFO_COMPONENT_SECRET}
+      JICOFO_AUTH_USER: focus
+      JICOFO_AUTH_PASSWORD: ${JICOFO_AUTH_PASSWORD}
+      JVB_BREWERY_MUC: jvbbrewery
+      TZ: Europe/Berlin
+    depends_on:
+      - prosody
+    networks:
+      - jitsi-internal
+
+  jvb:
+    image: jitsi/jvb:stable
+    restart: unless-stopped
+    ports:
+      - "10000:10000/udp"
+    environment:
+      XMPP_SERVER: prosody
+      XMPP_DOMAIN: meet.jitsi
+      XMPP_AUTH_DOMAIN: auth.meet.jitsi
+      XMPP_INTERNAL_MUC_DOMAIN: internal-muc.meet.jitsi
+      JVB_AUTH_USER: jvb
+      JVB_AUTH_PASSWORD: ${JVB_AUTH_PASSWORD}
+      JVB_BREWERY_MUC: jvbbrewery
+      JVB_PORT: 10000
+      JVB_ADVERTISE_IPS: 178.104.27.147
+      PUBLIC_URL: http://jitsi.178.104.27.147.traefik.me
+      TZ: Europe/Berlin
+    depends_on:
+      - prosody
+    networks:
+      - jitsi-internal
+
+networks:
+  jitsi-internal:
+    name: classroom-jitsi-internal
+  dokploy-network:
+    external: true
