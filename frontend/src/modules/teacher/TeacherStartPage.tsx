@@ -47,14 +47,17 @@ export function TeacherStartPage() {
 
       setTeacherName(teacher.full_name)
 
-      // Lektion laden
-      const { data: lessonData } = await (supabase as any)
-        .from('lessons')
-        .select('id, topic_number, title, room_code')
-        .eq('id', teacher.lesson_id)
-        .single() as { data: Lesson | null }
+      // Lektion laden (nur wenn lesson_id vorhanden)
+      if (teacher.lesson_id) {
+        const { data: lessonData } = await (supabase as any)
+          .from('lessons')
+          .select('id, topic_number, title, room_code')
+          .eq('id', teacher.lesson_id)
+          .single() as { data: Lesson | null }
 
-      setLesson(lessonData)
+        setLesson(lessonData)
+      }
+
       setLoading(false)
     }
 
