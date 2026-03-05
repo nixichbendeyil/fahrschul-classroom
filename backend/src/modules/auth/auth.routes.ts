@@ -1,5 +1,7 @@
+// backend/src/modules/auth/auth.routes.ts
 import { Router } from 'express'
 import { loginStudent, generateRoomCode } from './auth.service'
+import { requireTeacher } from '../../middleware/teacherAuth'
 
 const router = Router()
 
@@ -12,7 +14,8 @@ router.post('/login', async (req, res) => {
   }
 })
 
-router.post('/room-code', async (req, res) => {
+// Jetzt mit requireTeacher geschützt
+router.post('/room-code', requireTeacher, async (req, res) => {
   try {
     const { lesson_id } = req.body
     if (!lesson_id) {
