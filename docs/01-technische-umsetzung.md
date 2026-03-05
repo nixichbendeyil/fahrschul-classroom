@@ -93,12 +93,14 @@ src/
 
 **Routing:**
 
-| Pfad      | Komponente        | Wer         |
-|-----------|-------------------|-------------|
-| `/`       | LoginPage         | alle        |
-| `/lobby`  | LobbyPage         | Schüler     |
-| `/raum`   | StudentRoom       | Schüler     |
-| `/lehrer` | TeacherDashboard  | Lehrer      |
+| Pfad            | Komponente        | Wer                       |
+|-----------------|-------------------|---------------------------|
+| `/`             | LoginPage         | Schüler                   |
+| `/lobby`        | LobbyPage         | Schüler                   |
+| `/raum`         | StudentRoom       | Schüler                   |
+| `/lehrer-login` | TeacherLoginPage  | Lehrer (Supabase Auth)    |
+| `/lehrer-start` | TeacherStartPage  | Lehrer (Code generieren)  |
+| `/lehrer`       | TeacherDashboard  | Lehrer (Auth-Guard aktiv) |
 
 ### Backend (Node.js + Express + Socket.io)
 
@@ -110,9 +112,12 @@ src/
   modules/
     auth/
       auth.routes.ts             ← POST /api/auth/login
-                                    POST /api/auth/generate-code
+                                    POST /api/auth/room-code (Auth-geschützt)
       auth.service.ts            ← Login-Logik, Code-Generierung
       auth.types.ts              ← TypeScript-Typen
+  middleware/
+    teacherAuth.ts               ← requireTeacher Middleware (Supabase Token)
+  modules/
     rooms/
       rooms.routes.ts            ← GET /api/rooms (aktive Lektionen)
   socket/
@@ -125,12 +130,12 @@ src/
 
 **REST-Endpunkte:**
 
-| Methode | Pfad                       | Beschreibung                    |
-|---------|----------------------------|---------------------------------|
-| GET     | `/health`                  | Server-Status                   |
-| POST    | `/api/auth/login`          | Login mit Handynummer + Code    |
-| POST    | `/api/auth/generate-code`  | Neuen Raum-Code generieren      |
-| GET     | `/api/rooms`               | Aktive Lektionen auflisten      |
+| Methode | Pfad                      | Auth         | Beschreibung                    |
+|---------|---------------------------|--------------|---------------------------------|
+| GET     | `/health`                 | —            | Server-Status                   |
+| POST    | `/api/auth/login`         | —            | Login mit Handynummer + Code    |
+| POST    | `/api/auth/room-code`     | Lehrer-Token | Neuen Raum-Code generieren      |
+| GET     | `/api/rooms`              | —            | Aktive Lektionen auflisten      |
 
 ### Datenbank (Supabase / PostgreSQL)
 
@@ -139,6 +144,7 @@ students          -- Schüler (Handynummer, Name)
 lessons           -- Lektionen (Thema, Raum-Code, Status)
 active_codes      -- Temporäre Raum-Codes (8h gültig)
 attendance_logs   -- Anwesenheits-Protokoll pro Schüler/Lektion
+teachers          -- Lehrer (Supabase Auth User → Lektion)
 ```
 
 ---

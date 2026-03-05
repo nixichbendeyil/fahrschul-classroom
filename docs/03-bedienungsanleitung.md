@@ -24,29 +24,39 @@ Bevor Schüler das System nutzen können, müssen folgende Daten in Supabase ein
 
 ## Für den Lehrer
 
-### 1. Raum-Code generieren
+### 1. Einloggen
 
-Vor jeder Stunde muss ein Raum-Code für die Lektion generiert werden.
+Öffne im Browser:
 
-**API-Aufruf (z.B. mit curl oder Postman):**
-```bash
-POST http://backend.178.104.27.147.traefik.me/api/auth/generate-code
-Content-Type: application/json
-
-{ "lesson_id": "die-uuid-der-lektion" }
+```
+http://frontend.178.104.27.147.traefik.me/lehrer-login
 ```
 
-Der Response enthält den 6-stelligen Code, z.B.: `XK7R2M`
+Gib deine **E-Mail-Adresse** und dein **Passwort** ein. Du wirst zu `/lehrer-start` weitergeleitet.
 
-Diesen Code gibst du den Schülern (Tafel, WhatsApp, mündlich).
+> Bist du bereits eingeloggt, wirst du automatisch zu `/lehrer-start` weitergeleitet.
 
-### 2. Lehrer-Dashboard öffnen
+### 2. Raum-Code generieren
+
+Auf der Startseite (`/lehrer-start`) siehst du deine zugewiesene Lektion.
+
+1. Klicke auf **"🔑 Code generieren"** — ein 6-stelliger Code erscheint (z.B. `XK7R2M`)
+2. Gib diesen Code an deine Schüler weiter (Tafel, WhatsApp, mündlich)
+3. Optional: Klicke auf **"🔄 Neuen Code generieren"** um den alten Code zu ersetzen
+
+### 3. Unterricht starten
+
+Klicke auf **"▶ Unterricht starten"** — du wirst zum Lehrer-Dashboard weitergeleitet.
+
+> Der Button ist erst aktiv nachdem ein Code generiert wurde.
+
+### 4. Lehrer-Dashboard öffnen (direkt)
 
 Navigiere zu: `http://frontend.178.104.27.147.traefik.me/lehrer`
 
-> Der Lehrer braucht aktuell **keinen separaten Login**. Die Seite `/lehrer` ist direkt zugänglich. JWT und Lektionsdaten werden aus dem `localStorage` geladen (nach vorherigem Login oder manuellem Setzen).
+> Ohne aktive Lehrer-Session wird automatisch zu `/lehrer-login` weitergeleitet.
 
-### 3. Das Lehrer-Dashboard
+### 5. Das Lehrer-Dashboard
 
 Das Dashboard besteht aus zwei Bereichen:
 
@@ -67,7 +77,7 @@ Das Dashboard besteht aus zwei Bereichen:
 └─────────────────────────────┴──────────────────┘
 ```
 
-### 4. Buttons in der Sidebar
+### 6. Buttons in der Sidebar
 
 | Button           | Farbe  | Funktion                                          |
 |------------------|--------|---------------------------------------------------|
@@ -77,7 +87,7 @@ Das Dashboard besteht aus zwei Bereichen:
 | Zeichnen         | grün   | Aktiviert Zeichenfläche über dem Video            |
 | Zeichnen beenden | rot    | Deaktiviert Zeichenfläche                         |
 
-### 5. Zeichnen
+### 7. Zeichnen
 
 1. Klicke "Zeichnen" → Button wird rot ("Zeichnen beenden")
 2. Eine transparente Fläche erscheint über dem Video
@@ -88,7 +98,7 @@ Das Dashboard besteht aus zwei Bereichen:
 4. Mit Maus/Stift zeichnen — Schüler sehen alles live
 5. "Zeichnen beenden" zum Deaktivieren
 
-### 6. Anwesenheits-Check durchführen
+### 8. Anwesenheits-Check durchführen
 
 1. Klicke "Präsenz-Check"
 2. Bei allen Schülern erscheint ein Overlay mit 120s Countdown
@@ -96,13 +106,13 @@ Das Dashboard besteht aus zwei Bereichen:
 4. Nach 120s endet der Check automatisch
 5. In der Schülerliste siehst du `{bestätigt}/{gesamt}` pro Schüler
 
-### 7. Schüler-Mikrofon freischalten
+### 9. Schüler-Mikrofon freischalten
 
 1. Schüler hebt die Hand (in seiner App)
 2. In der Schülerliste erscheint ein roter "Mic"-Button neben dem Schüler
 3. Klicke "Mic" → der Schüler wird benachrichtigt und kann sprechen
 
-### 8. Schülerliste verstehen
+### 10. Schülerliste verstehen
 
 ```
 ● Max Mustermann    3/4     ← online, 3 von 4 Checks bestätigt
@@ -216,10 +226,13 @@ A: Ja. In Chrome/Safari: Menü → "Zum Startbildschirm hinzufügen".
 
 ## System-URLs
 
-| Was                  | URL                                                   |
-|----------------------|-------------------------------------------------------|
-| Schüler / Lehrer App | http://frontend.178.104.27.147.traefik.me             |
-| Backend API          | http://backend.178.104.27.147.traefik.me              |
-| Jitsi (direkt)       | https://jitsi.178.104.27.147.traefik.me               |
-| Dokploy Admin        | http://178.104.27.147:3000                            |
-| Supabase Studio      | http://fuehrerscheinfragenapp-supabase-...-traefik.me |
+| Was                  | URL                                                               |
+|----------------------|-------------------------------------------------------------------|
+| Schüler-Login        | http://frontend.178.104.27.147.traefik.me/                        |
+| Lehrer-Login         | http://frontend.178.104.27.147.traefik.me/lehrer-login            |
+| Lehrer-Startseite    | http://frontend.178.104.27.147.traefik.me/lehrer-start            |
+| Lehrer-Dashboard     | http://frontend.178.104.27.147.traefik.me/lehrer                  |
+| Backend API          | http://backend.178.104.27.147.traefik.me                          |
+| Jitsi (direkt)       | https://jitsi.178.104.27.147.traefik.me                           |
+| Dokploy Admin        | http://178.104.27.147:3000                                        |
+| Supabase Studio      | http://fuehrerscheinfragenapp-supabase-...-traefik.me             |

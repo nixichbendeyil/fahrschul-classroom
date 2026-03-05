@@ -5,6 +5,7 @@
 | Funktion               | Schüler | Lehrer | Technologie          |
 |------------------------|:-------:|:------:|----------------------|
 | Login mit Handynummer  | ✅      | —      | REST + JWT           |
+| Login mit E-Mail       | —       | ✅     | Supabase Auth        |
 | Video-Konferenz        | ✅      | ✅     | Jitsi Meet Embedded  |
 | Anwesenheits-Check     | ✅      | ✅     | Socket.io            |
 | Zeichenfläche          | sehen   | ✅     | Canvas + Socket.io   |
@@ -27,8 +28,20 @@
 - Schüler-Daten und Lektions-Infos werden ebenfalls im `localStorage` abgelegt
 - Weiterleitung → `/lobby`
 
-**Raum-Code-Generierung (Lehrer-Backend):**
-- `POST /api/auth/generate-code` mit `lesson_id`
+**Lehrer-Login:**
+- URL: `http://frontend.178.104.27.147.traefik.me/lehrer-login`
+- Eingabe: E-Mail + Passwort (Supabase Auth)
+- Prüft ob User in `teachers`-Tabelle existiert
+- Bei Erfolg: Weiterleitung → `/lehrer-start`
+
+**Lehrer-Startseite (`/lehrer-start`):**
+- Zeigt zugewiesene Lektion
+- Button "Code generieren" → generiert neuen Raum-Code
+- Button "Unterricht starten" → öffnet Dashboard `/lehrer`
+- Auth-Guard: ohne Session → Redirect zu `/lehrer-login`
+
+**Raum-Code-Generierung:**
+- `POST /api/auth/room-code` (Bearer-Token erforderlich — nur für Lehrer)
 - Generiert kryptografisch sicheren 6-stelligen Code (A-Z, 0-9)
 - Setzt Ablaufzeit: +8 Stunden
 - Löscht vorherigen Code für diese Lektion
