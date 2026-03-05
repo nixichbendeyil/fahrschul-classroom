@@ -27,6 +27,8 @@ import roomsRouter from './modules/rooms/rooms.routes'
 
 app.use('/api/auth', authRouter)
 app.use('/api/rooms', roomsRouter)
+import adminRouter from './modules/admin/admin.routes'
+app.use('/api/admin', adminRouter)
 
 // Socket.io
 import { registerSocketHandlers } from './socket/index'
