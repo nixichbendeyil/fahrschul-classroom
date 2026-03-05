@@ -2,25 +2,29 @@
 
 ## Übersicht der Funktionen
 
-| Funktion               | Schüler | Lehrer | Technologie          |
-|------------------------|:-------:|:------:|----------------------|
-| Login mit Handynummer  | ✅      | —      | REST + JWT           |
-| Login mit E-Mail       | —       | ✅     | Supabase Auth        |
-| Video-Konferenz        | ✅      | ✅     | Jitsi Meet Embedded  |
-| Anwesenheits-Check     | ✅      | ✅     | Socket.io            |
-| Zeichenfläche          | sehen   | ✅     | Canvas + Socket.io   |
-| Hand heben             | ✅      | sehen  | Socket.io            |
-| Mikrofon-Vergabe       | —       | ✅     | Socket.io + Jitsi    |
-| Bildschirm teilen      | —       | ✅     | Jitsi IFrame API     |
-| Alle stumm schalten    | —       | ✅     | Jitsi IFrame API     |
-| Schülerliste live      | —       | ✅     | Socket.io            |
-| Anwesenheits-Statistik | —       | ✅     | Socket.io + Supabase |
+| Funktion               | Schüler | Lehrer | Admin | Technologie          |
+|------------------------|:-------:|:------:|:-----:|----------------------|
+| Login mit Handynummer  | ✅      | —      | —     | REST + JWT           |
+| Login mit E-Mail       | —       | ✅     | ✅    | Supabase Auth        |
+| Admin-Panel            | —       | —      | ✅    | React + Express      |
+| Lehrer verwalten       | —       | —      | ✅    | Supabase Admin API   |
+| Schüler verwalten      | —       | —      | ✅    | REST + Supabase      |
+| Lektionen verwalten    | —       | —      | ✅    | REST + Supabase      |
+| Video-Konferenz        | ✅      | ✅     | —     | Jitsi Meet Embedded  |
+| Anwesenheits-Check     | ✅      | ✅     | —     | Socket.io            |
+| Zeichenfläche          | sehen   | ✅     | —     | Canvas + Socket.io   |
+| Hand heben             | ✅      | sehen  | —     | Socket.io            |
+| Mikrofon-Vergabe       | —       | ✅     | —     | Socket.io + Jitsi    |
+| Bildschirm teilen      | —       | ✅     | —     | Jitsi IFrame API     |
+| Alle stumm schalten    | —       | ✅     | —     | Jitsi IFrame API     |
+| Schülerliste live      | —       | ✅     | —     | Socket.io            |
+| Anwesenheits-Statistik | —       | ✅     | —     | Socket.io + Supabase |
 
 ---
 
 ## 1. Login / Authentifizierung
 
-**Schüler-Login:**
+**Schüler-Login (`/`):**
 - Eingabe: Handynummer + 6-stelliger Raum-Code
 - Backend prüft: Ist der Code aktiv und nicht abgelaufen (8h Gültigkeit)?
 - Backend prüft: Ist die Handynummer in der Datenbank registriert?
@@ -28,17 +32,24 @@
 - Schüler-Daten und Lektions-Infos werden ebenfalls im `localStorage` abgelegt
 - Weiterleitung → `/lobby`
 
-**Lehrer-Login:**
-- URL: `http://frontend.178.104.27.147.traefik.me/lehrer-login`
+**Einheitlicher Staff-Login (`/login`):**
+- URL: `http://frontend.178.104.27.147.traefik.me/login`
 - Eingabe: E-Mail + Passwort (Supabase Auth)
 - Prüft ob User in `teachers`-Tabelle existiert
-- Bei Erfolg: Weiterleitung → `/lehrer-start`
+- Prüft `is_admin` Spalte → Admin: Weiterleitung `/admin`, Lehrer: Weiterleitung `/lehrer-start`
+- `/lehrer-login` redirectet automatisch zu `/login` (rückwärtskompatibel)
 
 **Lehrer-Startseite (`/lehrer-start`):**
 - Zeigt zugewiesene Lektion
 - Button "Code generieren" → generiert neuen Raum-Code
 - Button "Unterricht starten" → öffnet Dashboard `/lehrer`
-- Auth-Guard: ohne Session → Redirect zu `/lehrer-login`
+- Auth-Guard: ohne Session → Redirect zu `/login`
+
+**Admin-Panel (`/admin`):**
+- Nur zugänglich für Lehrer mit `is_admin = true`
+- Auth-Guard auf jeder Admin-Seite: prüft Session + `is_admin`
+- Sidebar-Navigation: Dashboard, Lehrer, Schüler, Lektionen
+- Abmelden-Button in der Sidebar
 
 **Raum-Code-Generierung:**
 - `POST /api/auth/room-code` (Bearer-Token erforderlich — nur für Lehrer)
@@ -182,6 +193,37 @@ Nach dem Login landet der Schüler in der Lobby:
 `GET /api/rooms` listet alle aktiven Lektionen:
 - Filtert nach `status = 'aktiv'`
 - Kann vom Frontend oder Admin-Tool abgefragt werden
+
+---
+
+## 10. Admin-Panel
+
+Das Admin-Panel ermöglicht die vollständige Verwaltung der Fahrschule ohne SQL-Kenntnisse.
+
+**Dashboard (`/admin`):**
+- Zeigt Statistik-Karten: Anzahl Lehrer, Schüler, Lektionen
+
+**Lehrer-Verwaltung (`/admin/lehrer`):**
+- Liste aller Lehrer mit Name, E-Mail, zugewiesener Lektion, Admin-Badge
+- Lehrer anlegen: Name + E-Mail + Passwort + Lektions-Zuweisung + Admin-Checkbox
+- Lehrer bearbeiten: alle Felder änderbar (Passwort leer = unverändert)
+- Lehrer löschen: löscht Auth-User + teachers-Row (CASCADE)
+- Selbst-Löschung verhindert (serverseitig)
+
+**Schüler-Verwaltung (`/admin/schueler`):**
+- Liste aller Schüler mit Name, Handynummer, Aktiv-Status
+- Schüler anlegen / bearbeiten / löschen
+
+**Lektionen-Verwaltung (`/admin/lektionen`):**
+- Liste aller Lektionen mit Nummer, Titel, zugewiesenem Lehrer, Status
+- Lektion anlegen: Nummer + Titel + Lehrer zuweisen (optional)
+- Lektion bearbeiten: Lehrer-Zuweisung ändert `lesson_id` auf teachers-Row
+- Lektion löschen: löst alle Lehrer-Zuweisungen vor dem Löschen
+
+**Backend:**
+- Alle Endpunkte unter `/api/admin/*` durch `requireAdmin` Middleware geschützt
+- Lehrer-Erstellung über Supabase Admin API (`auth.admin.createUser`)
+- E-Mail/Passwort-Änderung über `auth.admin.updateUserById`
 
 ---
 

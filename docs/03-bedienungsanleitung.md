@@ -2,23 +2,70 @@
 
 ## Vorbereitung (einmalig, Fahrschule)
 
-Bevor Schüler das System nutzen können, müssen folgende Daten in Supabase eingegeben sein:
+Bevor Schüler das System nutzen können, muss ein Admin eingerichtet und die Stammdaten angelegt werden.
 
-### Schüler anlegen (Tabelle `students`)
+### Schritt 1: Ersten Admin anlegen (einmalig, per SQL)
 
-| Spalte         | Beispiel              |
-|----------------|-----------------------|
-| `phone_number` | `+4915112345678`      |
-| `full_name`    | `Max Mustermann`      |
-| `is_active`    | `true`                |
+Im Supabase Studio → SQL Editor:
 
-### Lektion anlegen (Tabelle `lessons`)
+```sql
+-- Option A: Bestehenden Lehrer zum Admin machen
+UPDATE teachers SET is_admin = true
+WHERE id = (SELECT id FROM auth.users WHERE email = 'deine@email.de');
 
-| Spalte         | Beispiel              |
-|----------------|-----------------------|
-| `topic_number` | `1`                   |
-| `title`        | `Verkehrszeichen`     |
-| `status`       | `entwurf`             |
+-- Option B: Neuen Admin anlegen
+-- 1. Supabase Studio → Authentication → Users → "Add user" (E-Mail + Passwort)
+-- 2. Dann:
+INSERT INTO teachers (id, full_name, is_admin)
+SELECT id, 'Admin', true FROM auth.users WHERE email = 'admin@fahrschule.de';
+```
+
+### Schritt 2: Admin-Panel nutzen
+
+Ab jetzt alles über das Admin-Panel unter:
+```
+http://frontend.178.104.27.147.traefik.me/login
+```
+
+1. Einloggen als Admin → landet auf `/admin`
+2. **Lektionen anlegen** → `/admin/lektionen` → "+ Neue Lektion"
+3. **Lehrer anlegen** → `/admin/lehrer` → "+ Neuer Lehrer" (Lektion zuweisen)
+4. **Schüler anlegen** → `/admin/schueler` → "+ Neuer Schüler"
+
+Kein SQL mehr notwendig!
+
+---
+
+## Für den Admin
+
+### Admin-Panel öffnen
+
+```
+http://frontend.178.104.27.147.traefik.me/login
+```
+
+Mit Admin-E-Mail und Passwort einloggen → landet auf `/admin`.
+
+### Lehrer anlegen
+
+1. Sidebar → **Lehrer** → "+ Neuer Lehrer"
+2. Name, E-Mail, Passwort eingeben
+3. Lektion zuweisen (Dropdown)
+4. Optional: Admin-Rechte aktivieren (Checkbox)
+5. "Speichern" → Lehrer kann sich sofort einloggen
+
+### Schüler anlegen
+
+1. Sidebar → **Schüler** → "+ Neuer Schüler"
+2. Name + Handynummer eingeben (Format: `+4915112345678`)
+3. "Speichern"
+
+### Lektion anlegen
+
+1. Sidebar → **Lektionen** → "+ Neue Lektion"
+2. Nummer (z.B. `1`) und Titel eingeben
+3. Optional: Lehrer zuweisen
+4. "Speichern"
 
 ---
 
@@ -29,12 +76,13 @@ Bevor Schüler das System nutzen können, müssen folgende Daten in Supabase ein
 Öffne im Browser:
 
 ```
-http://frontend.178.104.27.147.traefik.me/lehrer-login
+http://frontend.178.104.27.147.traefik.me/login
 ```
 
 Gib deine **E-Mail-Adresse** und dein **Passwort** ein. Du wirst zu `/lehrer-start` weitergeleitet.
 
 > Bist du bereits eingeloggt, wirst du automatisch zu `/lehrer-start` weitergeleitet.
+> Der alte Link `/lehrer-login` leitet automatisch zur neuen Login-Seite weiter.
 
 ### 2. Raum-Code generieren
 
@@ -54,7 +102,7 @@ Klicke auf **"▶ Unterricht starten"** — du wirst zum Lehrer-Dashboard weiter
 
 Navigiere zu: `http://frontend.178.104.27.147.traefik.me/lehrer`
 
-> Ohne aktive Lehrer-Session wird automatisch zu `/lehrer-login` weitergeleitet.
+> Ohne aktive Lehrer-Session wird automatisch zu `/login` weitergeleitet.
 
 ### 5. Das Lehrer-Dashboard
 
@@ -229,7 +277,11 @@ A: Ja. In Chrome/Safari: Menü → "Zum Startbildschirm hinzufügen".
 | Was                  | URL                                                               |
 |----------------------|-------------------------------------------------------------------|
 | Schüler-Login        | http://frontend.178.104.27.147.traefik.me/                        |
-| Lehrer-Login         | http://frontend.178.104.27.147.traefik.me/lehrer-login            |
+| Staff-Login          | http://frontend.178.104.27.147.traefik.me/login                   |
+| Admin-Panel          | http://frontend.178.104.27.147.traefik.me/admin                   |
+| Admin → Lehrer       | http://frontend.178.104.27.147.traefik.me/admin/lehrer            |
+| Admin → Schüler      | http://frontend.178.104.27.147.traefik.me/admin/schueler          |
+| Admin → Lektionen    | http://frontend.178.104.27.147.traefik.me/admin/lektionen         |
 | Lehrer-Startseite    | http://frontend.178.104.27.147.traefik.me/lehrer-start            |
 | Lehrer-Dashboard     | http://frontend.178.104.27.147.traefik.me/lehrer                  |
 | Backend API          | http://backend.178.104.27.147.traefik.me                          |

@@ -65,14 +65,15 @@ Supabase (Self-Hosted, gleicher VPS):
 
 ```
 src/
-  App.tsx                        ← Router (4 Routen)
+  App.tsx                        ← Router (alle Routen)
   main.tsx                       ← React-Einstieg
   lib/
     socket.ts                    ← Socket.io Singleton
     supabase.ts                  ← Supabase Browser-Client
   modules/
     auth/
-      LoginPage.tsx              ← Login-Formular
+      LoginPage.tsx              ← Schüler-Login (Handynummer + Code)
+      StaffLoginPage.tsx         ← Einheitlicher Login für Admin + Lehrer
       useAuth.ts                 ← Login-Logik + JWT speichern
     lobby/
       LobbyPage.tsx              ← Warteraum nach Login
@@ -89,18 +90,29 @@ src/
     attendance/
       AttendanceCheck.tsx        ← Anwesenheits-Popup
       useAttendance.ts           ← Anwesenheits-Logik
+    admin/
+      AdminLayout.tsx            ← Sidebar + Header Wrapper (Auth-Guard)
+      AdminDashboard.tsx         ← /admin (Statistik-Karten)
+      AdminLehrer.tsx            ← /admin/lehrer (CRUD)
+      AdminSchueler.tsx          ← /admin/schueler (CRUD)
+      AdminLektionen.tsx         ← /admin/lektionen (CRUD)
 ```
 
 **Routing:**
 
-| Pfad            | Komponente        | Wer                       |
-|-----------------|-------------------|---------------------------|
-| `/`             | LoginPage         | Schüler                   |
-| `/lobby`        | LobbyPage         | Schüler                   |
-| `/raum`         | StudentRoom       | Schüler                   |
-| `/lehrer-login` | TeacherLoginPage  | Lehrer (Supabase Auth)    |
-| `/lehrer-start` | TeacherStartPage  | Lehrer (Code generieren)  |
-| `/lehrer`       | TeacherDashboard  | Lehrer (Auth-Guard aktiv) |
+| Pfad               | Komponente        | Wer                              |
+|--------------------|-------------------|----------------------------------|
+| `/`                | LoginPage         | Schüler                          |
+| `/lobby`           | LobbyPage         | Schüler                          |
+| `/raum`            | StudentRoom       | Schüler                          |
+| `/login`           | StaffLoginPage    | Admin + Lehrer (Rolle → Redirect)|
+| `/lehrer-login`    | Redirect → `/login` | (rückwärtskompatibel)          |
+| `/lehrer-start`    | TeacherStartPage  | Lehrer (Code generieren)         |
+| `/lehrer`          | TeacherDashboard  | Lehrer (Auth-Guard aktiv)        |
+| `/admin`           | AdminDashboard    | Admin (Auth-Guard is_admin)      |
+| `/admin/lehrer`    | AdminLehrer       | Admin                            |
+| `/admin/schueler`  | AdminSchueler     | Admin                            |
+| `/admin/lektionen` | AdminLektionen    | Admin                            |
 
 ### Backend (Node.js + Express + Socket.io)
 
@@ -109,17 +121,20 @@ src/
   index.ts                       ← Server-Einstieg, CORS, Port 3002
   lib/
     supabase.ts                  ← Supabase Service-Role Client
+  middleware/
+    teacherAuth.ts               ← requireTeacher (Supabase Token)
+    adminAuth.ts                 ← requireAdmin (Token + is_admin check)
   modules/
     auth/
       auth.routes.ts             ← POST /api/auth/login
                                     POST /api/auth/room-code (Auth-geschützt)
       auth.service.ts            ← Login-Logik, Code-Generierung
       auth.types.ts              ← TypeScript-Typen
-  middleware/
-    teacherAuth.ts               ← requireTeacher Middleware (Supabase Token)
-  modules/
     rooms/
       rooms.routes.ts            ← GET /api/rooms (aktive Lektionen)
+    admin/
+      admin.routes.ts            ← Alle /api/admin/* Endpunkte
+      admin.service.ts           ← Business-Logik (Supabase Admin API)
   socket/
     index.ts                     ← JWT-Authentifizierung bei WS-Connect
     handlers/
@@ -130,22 +145,42 @@ src/
 
 **REST-Endpunkte:**
 
-| Methode | Pfad                      | Auth         | Beschreibung                    |
-|---------|---------------------------|--------------|---------------------------------|
-| GET     | `/health`                 | —            | Server-Status                   |
-| POST    | `/api/auth/login`         | —            | Login mit Handynummer + Code    |
-| POST    | `/api/auth/room-code`     | Lehrer-Token | Neuen Raum-Code generieren      |
-| GET     | `/api/rooms`              | —            | Aktive Lektionen auflisten      |
+| Methode | Pfad                        | Auth          | Beschreibung                    |
+|---------|-----------------------------|---------------|---------------------------------|
+| GET     | `/health`                   | —             | Server-Status                   |
+| POST    | `/api/auth/login`           | —             | Login mit Handynummer + Code    |
+| POST    | `/api/auth/room-code`       | Lehrer-Token  | Neuen Raum-Code generieren      |
+| GET     | `/api/rooms`                | —             | Aktive Lektionen auflisten      |
+| GET     | `/api/admin/stats`          | Admin-Token   | Anzahl Lehrer/Schüler/Lektionen |
+| GET     | `/api/admin/lehrer`         | Admin-Token   | Alle Lehrer (inkl. E-Mail)      |
+| POST    | `/api/admin/lehrer`         | Admin-Token   | Lehrer anlegen (Auth + DB)      |
+| PUT     | `/api/admin/lehrer/:id`     | Admin-Token   | Lehrer bearbeiten               |
+| DELETE  | `/api/admin/lehrer/:id`     | Admin-Token   | Lehrer löschen                  |
+| GET     | `/api/admin/schueler`       | Admin-Token   | Alle Schüler                    |
+| POST    | `/api/admin/schueler`       | Admin-Token   | Schüler anlegen                 |
+| PUT     | `/api/admin/schueler/:id`   | Admin-Token   | Schüler bearbeiten              |
+| DELETE  | `/api/admin/schueler/:id`   | Admin-Token   | Schüler löschen                 |
+| GET     | `/api/admin/lektionen`      | Admin-Token   | Alle Lektionen                  |
+| POST    | `/api/admin/lektionen`      | Admin-Token   | Lektion anlegen                 |
+| PUT     | `/api/admin/lektionen/:id`  | Admin-Token   | Lektion bearbeiten              |
+| DELETE  | `/api/admin/lektionen/:id`  | Admin-Token   | Lektion löschen                 |
 
 ### Datenbank (Supabase / PostgreSQL)
 
 ```sql
-students          -- Schüler (Handynummer, Name)
+students          -- Schüler (Handynummer, Name, is_active)
 lessons           -- Lektionen (Thema, Raum-Code, Status)
 active_codes      -- Temporäre Raum-Codes (8h gültig)
 attendance_logs   -- Anwesenheits-Protokoll pro Schüler/Lektion
-teachers          -- Lehrer (Supabase Auth User → Lektion)
+teachers          -- Lehrer (Supabase Auth User → Lektion, is_admin)
 ```
+
+**Migrations:**
+
+| Datei                          | Inhalt                                      |
+|--------------------------------|---------------------------------------------|
+| `003_teachers.sql`             | `teachers` Tabelle mit FK auf `auth.users`  |
+| `004_admin_role.sql`           | `is_admin BOOLEAN DEFAULT false` auf teachers|
 
 ---
 
