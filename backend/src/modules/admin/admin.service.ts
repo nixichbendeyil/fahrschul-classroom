@@ -112,12 +112,16 @@ export async function getAllLektionen() {
     .select('id, full_name, lesson_id')
     .not('lesson_id', 'is', null)
 
-  const teacherMap = new Map((teachers || []).map((t: any) => [t.lesson_id, t.full_name]))
+  const teacherMap = new Map((teachers || []).map((t: any) => [t.lesson_id, { name: t.full_name, id: t.id }]))
 
-  return (data || []).map((l: any) => ({
-    ...l,
-    assigned_teacher: teacherMap.get(l.id) || null
-  }))
+  return (data || []).map((l: any) => {
+    const teacher = teacherMap.get(l.id)
+    return {
+      ...l,
+      assigned_teacher: teacher?.name || null,
+      assigned_teacher_id: teacher?.id || null
+    }
+  })
 }
 
 export async function createLektion(data: { topic_number: number; title: string; teacher_id?: string }) {

@@ -55,7 +55,8 @@ export function AdminSchueler() {
   async function handleDelete(id: string, name: string) {
     if (!confirm(`${name} wirklich löschen?`)) return
     const headers = await authHeaders()
-    await fetch(`${BACKEND()}/api/admin/schueler/${id}`, { method: 'DELETE', headers })
+    const res = await fetch(`${BACKEND()}/api/admin/schueler/${id}`, { method: 'DELETE', headers })
+    if (!res.ok) { const d = await res.json(); alert(d.error); return }
     load()
   }
 

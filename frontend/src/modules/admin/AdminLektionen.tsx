@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { AdminLayout } from './AdminLayout'
 import { supabase } from '../../lib/supabase'
 
-interface Lektion { id: string; topic_number: number; title: string; status: string; room_code: string | null; assigned_teacher: string | null }
+interface Lektion { id: string; topic_number: number; title: string; status: string; room_code: string | null; assigned_teacher: string | null; assigned_teacher_id: string | null }
 interface Lehrer { id: string; full_name: string }
 
 const BACKEND = () => import.meta.env.VITE_BACKEND_URL || ''
@@ -41,8 +41,7 @@ export function AdminLektionen() {
 
   function openEdit(l: Lektion) {
     setEditId(l.id)
-    const assignedLehrer = lehrer.find(lr => lr.full_name === l.assigned_teacher)
-    setForm({ topic_number: String(l.topic_number), title: l.title, teacher_id: assignedLehrer?.id || '' })
+    setForm({ topic_number: String(l.topic_number), title: l.title, teacher_id: l.assigned_teacher_id || '' })
     setError('')
     setShowModal(true)
   }
@@ -63,7 +62,8 @@ export function AdminLektionen() {
   async function handleDelete(id: string, title: string) {
     if (!confirm(`Lektion "${title}" wirklich löschen?`)) return
     const headers = await authHeaders()
-    await fetch(`${BACKEND()}/api/admin/lektionen/${id}`, { method: 'DELETE', headers })
+    const res = await fetch(`${BACKEND()}/api/admin/lektionen/${id}`, { method: 'DELETE', headers })
+    if (!res.ok) { const d = await res.json(); alert(d.error); return }
     load()
   }
 
