@@ -7,7 +7,7 @@ services:
     environment:
       ENABLE_AUTH: "0"
       ENABLE_GUESTS: "1"
-      PUBLIC_URL: "http://jitsi.178.104.27.147.traefik.me"
+      PUBLIC_URL: "https://jitsi.178.104.27.147.traefik.me"
       XMPP_SERVER: prosody
       XMPP_DOMAIN: meet.jitsi
       XMPP_AUTH_DOMAIN: auth.meet.jitsi
@@ -16,8 +16,13 @@ services:
       TZ: Europe/Berlin
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.jitsi-web.rule=Host(`jitsi.178.104.27.147.traefik.me`)"
-      - "traefik.http.routers.jitsi-web.entrypoints=web"
+      - "traefik.http.routers.jitsi-web-https.rule=Host(`jitsi.178.104.27.147.traefik.me`)"
+      - "traefik.http.routers.jitsi-web-https.entrypoints=websecure"
+      - "traefik.http.routers.jitsi-web-https.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.jitsi-web-http.rule=Host(`jitsi.178.104.27.147.traefik.me`)"
+      - "traefik.http.routers.jitsi-web-http.entrypoints=web"
+      - "traefik.http.routers.jitsi-web-http.middlewares=https-redirect"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
       - "traefik.http.services.jitsi-web.loadbalancer.server.port=80"
     networks:
       - jitsi-internal
@@ -83,7 +88,7 @@ services:
       JVB_BREWERY_MUC: jvbbrewery
       JVB_PORT: 10000
       JVB_ADVERTISE_IPS: 178.104.27.147
-      PUBLIC_URL: http://jitsi.178.104.27.147.traefik.me
+      PUBLIC_URL: https://jitsi.178.104.27.147.traefik.me
       TZ: Europe/Berlin
     depends_on:
       - prosody
