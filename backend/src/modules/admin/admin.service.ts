@@ -112,7 +112,7 @@ export async function getAllLektionen() {
     .select('id, full_name, lesson_id')
     .not('lesson_id', 'is', null)
 
-  const teacherMap = new Map((teachers || []).map((t: any) => [t.lesson_id, { name: t.full_name, id: t.id }]))
+  const teacherMap = new Map<string, { name: string; id: string }>((teachers || []).map((t: any) => [t.lesson_id, { name: t.full_name as string, id: t.id as string }]))
 
   return (data || []).map((l: any) => {
     const teacher = teacherMap.get(l.id)
